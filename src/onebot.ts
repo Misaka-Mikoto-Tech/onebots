@@ -21,7 +21,7 @@ export class OneBot<V extends OneBot.Version> extends EventEmitter {
     public client: Client
     instances: (V11 | V12)[]
 
-    constructor(public app: App, public readonly uin: number, config: MayBeArray<OneBotConfig>) {
+    constructor(public app: App, public readonly uin: number, config: MayBeArray<OneBotConfig>) { // TODO 感觉不对，config 不应该是数组
         super()
         config = [].concat(config)
         const protocolConfig:IcqqConfig={
@@ -41,6 +41,7 @@ export class OneBot<V extends OneBot.Version> extends EventEmitter {
                     throw new Error('不支持的oneBot版本：' + c.version)
             }
         })
+        this.password = this.config[0].password
         this.client = new Client(protocolConfig)
         this.instances = this.config.map(c => {
             switch (c.version) {
@@ -199,6 +200,7 @@ export namespace OneBot {
     export type Version = 'V11' | 'V12'
     export type Config<V extends Version = 'V11'> = ({
         version?: V
+        password?: string
         protocol?:IcqqConfig
     } & (V extends 'V11' ? V11.Config : V12.Config))
 
