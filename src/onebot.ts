@@ -3,7 +3,7 @@ import {EventEmitter} from 'events'
 import {App} from "./server/app";
 import {deepClone, deepMerge} from "./utils";
 import {join} from "path";
-import {Client} from "icqq";
+import {Client, GroupMessage} from "icqq";
 import {genDmMessageId, genGroupMessageId,Config as IcqqConfig} from 'icqq'
 import {V11} from "./service/V11";
 import {V12} from "./service/V12";
@@ -135,6 +135,7 @@ export class OneBot<V extends OneBot.Version> extends EventEmitter {
     }
 
     startListen() {
+        this.client.on('system.online', this.system_online.bind(this, "system.online"))
         this.client.trap('system', this.dispatch.bind(this, 'system'))
         this.client.trap('notice', this.dispatch.bind(this, 'notice'))
         this.client.trap('request', this.dispatch.bind(this, 'request'))
@@ -151,7 +152,20 @@ export class OneBot<V extends OneBot.Version> extends EventEmitter {
         this.client.logout(force)
     }
 
+    system_online(event, data){
+        for (const instance of this.instances) {
+            instance.system_online(data)
+        }
+    }
+
     dispatch(event, data) {
+        // 群消息派发白名单
+        if(data instanceof GroupMessage)
+        {
+            let lst = this.app.config.group_whitelist
+            if(lst && lst.length > 0 && !lst.includes(data.group_id))
+                return
+        }
         for (const instance of this.instances) {
             const result = instance.format(event, data)
             if (data.source) {
@@ -193,6 +207,7 @@ export namespace OneBot {
 
         stop(): any
 
+        system_online(...args: any[]): any
         dispatch(...args: any[]): any
 
         apply(...args: any[]): any

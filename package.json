@@ -43,7 +43,7 @@
     "ts-node-dev": "latest",
     "tsc-alias": "latest",
     "tsconfig-paths": "latest",
-    "typescript": "latest",
+    "typescript": "^5.2.2",
     "vitepress": "^1.0.0-alpha.72"
   },
   "files": [
@@ -63,6 +63,7 @@
     "koa": "^2.13.4",
     "koa-bodyparser": "^4.3.0",
     "log4js": "^6.5.2",
+    "onebots": "^0.4.14",
     "ws": "^8.8.0"
   }
 }

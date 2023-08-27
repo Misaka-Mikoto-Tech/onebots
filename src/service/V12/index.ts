@@ -352,6 +352,10 @@ export class V12 extends EventEmitter implements OneBot.Base {
         return V12.formatPayload(this.oneBot.uin, event, data as any)
     }
 
+    system_online(data){
+
+    }
+
     dispatch(data: Record<string, any>) {
         const payload: V12.Payload<any> = {
             id: uuid(),

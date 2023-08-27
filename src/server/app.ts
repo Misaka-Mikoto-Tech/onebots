@@ -220,6 +220,7 @@ export namespace App {
         path?: string
         timeout?: number
         log_level?: LogLevel
+        group_whitelist?: number[]
         general?: {
             V11?: V11.Config
             V12?: V12.Config

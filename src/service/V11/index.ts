@@ -202,6 +202,14 @@ export class V11 extends EventEmitter implements OneBot.Base {
         return data
     }
 
+    system_online(data){
+        this.logger.info("【好友列表】")
+        this.client.fl.forEach(item => this.logger.info(`\t${item.nickname}(${item.user_id})`))
+        this.logger.info("【群列表】")
+        this.client.gl.forEach(item => this.logger.info(`\t${item.group_name}(${item.group_id})`))
+        this.logger.info('')
+    }
+
     dispatch(data: any) {
         if (!data.post_type) data.post_type = 'system'
         if (data.post_type === 'system') {
@@ -278,7 +286,7 @@ export class V11 extends EventEmitter implements OneBot.Base {
      */
     protected _webSocketHandler(ws: WebSocket) {
         ws.on("message", async (msg) => {
-            this.logger.info(" 收到ws消息：" + msg)
+            // this.logger.info(" 收到ws消息：" + msg)
             var data
             try {
                 data = JSON.parse(String(msg)) as V11.Protocol

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 "use strict";
+import "@/test"
 import {createApp} from "@/server/app";
 
 const execArgv = process.argv.splice(2);
