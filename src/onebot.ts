@@ -169,18 +169,19 @@ export class OneBot<V extends OneBot.Version> extends EventEmitter {
         }
         for (const instance of this.instances) {
             const result = instance.format(event, data)
-            if (data.source) {
+            if (data.source) { // 有 data.source 字段代表这是个回复
                 switch (data.message_type) {
                     case 'group':
                         data.message.unshift({
                             type: 'reply',
-                            message_id: genGroupMessageId(data.group_id, data.source.user_id, data.source.seq, data.source.rand, data.source.time)
+                            // 引用为本地使用，只能用 seq, 因为 CommonAction.getMsg() 参数类型要求 number 
+                            id: data.source.seq // genGroupMessageId(data.group_id, data.source.user_id, data.source.seq, data.source.rand, data.source.time)
                         })
                         break;
                     case 'private':
                         data.message.unshift({
                             type: 'reply',
-                            message_id: genDmMessageId(data.source.user_id, data.source.seq, data.source.rand, data.source.time)
+                            id: data.source.seq // genDmMessageId(data.source.user_id, data.source.seq, data.source.rand, data.source.time)
                         })
                         break;
                 }

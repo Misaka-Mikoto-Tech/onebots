@@ -1,4 +1,4 @@
-import {OnlineStatus} from "icqq";
+import {Message, OnlineStatus} from "icqq";
 import {OneBotStatus} from "@/onebot";
 import {V11} from "@/service/V11";
 
@@ -25,9 +25,13 @@ export class CommonAction {
      * 获取消息
      * @param message_id {string} 消息id
      */
-    getMsg(this: V11, message_id: number) {
+    async getMsg(this: V11, message_id: number) {
         const messageId=this.db.get(`KVMap.${message_id}`)
-        return this.client.getMsg(messageId as string)
+        let msg: Message = await this.client.getMsg(messageId as string)
+        msg.message_id = msg.seq.toString() // nonebot 使用的其实是 seq
+        if(!msg["real_id"]) // nonebot 的reply要求real_id字段，虽然它从未使用
+            msg["real_id"] = msg.seq
+        return msg
     }
 
     /**
