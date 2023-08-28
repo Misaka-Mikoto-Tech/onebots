@@ -161,12 +161,14 @@ export class OneBot<V extends OneBot.Version> extends EventEmitter {
 
     dispatch(event, data) {
         // 群消息派发白名单
-        if(data instanceof GroupMessage)
+        let group_id = data["group_id"]
+        if(group_id)
         {
             let lst = this.app.config.group_whitelist
-            if(lst && lst.length > 0 && !lst.includes(data.group_id))
+            if(lst && lst.length > 0 && !lst.includes(group_id))
                 return
         }
+        
         for (const instance of this.instances) {
             const result = instance.format(event, data)
             if (data.source) { // 有 data.source 字段代表这是个回复
