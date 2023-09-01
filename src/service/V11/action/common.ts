@@ -26,11 +26,11 @@ export class CommonAction {
      * @param message_id {string} 消息id
      */
     async getMsg(this: V11, message_id: number) {
-        const messageId=this.db.get(`KVMap.${message_id}`)
-        let msg: Message = await this.client.getMsg(messageId as string)
-        msg.message_id = msg.seq.toString() // nonebot 使用的其实是 seq
-        if(!msg["real_id"]) // nonebot 的reply要求real_id字段，虽然它从未使用
-            msg["real_id"] = msg.seq
+        const messageId= String((await this.db.getMsgById(message_id)).id) // 从本地数据库查找出id对应的 base64_id
+        let msg: Message = await this.client.getMsg(messageId)
+        msg.message_id = messageId  // nonebot v11 要求 message_id 是 number 类型
+        if(!msg["real_id"])         // nonebot 的reply要求real_id字段，虽然它从未使用
+            msg["real_id"] = msg.message_id
         return msg
     }
 

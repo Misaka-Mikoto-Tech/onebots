@@ -14,10 +14,11 @@ import http from "http";
 import https from "https";
 import {EventEmitter} from "events";
 import {rmSync} from "fs";
-import {Database} from "@/db";
+import {Database} from "./db_sqlite";
 import {join} from "path";
 import {App} from "@/server/app";
-import {V12} from "@/service/V12";
+import { MsgData } from "./db_entities";
+import { stringify } from "querystring";
 
 export class V11 extends EventEmitter implements OneBot.Base {
     public action: Action
@@ -25,7 +26,7 @@ export class V11 extends EventEmitter implements OneBot.Base {
     protected timestamp = Date.now()
     protected heartbeat?: NodeJS.Timeout
     private path: string
-    db: Database<{ eventBuffer: V12.Payload<keyof Action>[],KVMap:Record<number, string>, files: Record<string, V12.FileInfo> }>
+    db: Database
     disposes: Dispose[]
     protected _queue: Array<{
         method: keyof Action,
@@ -39,9 +40,8 @@ export class V11 extends EventEmitter implements OneBot.Base {
     constructor(public oneBot: OneBot<'V11'>, public client: Client, public config: V11.Config) {
         super()
         this.action = new Action()
-        this.db = new Database(join(App.configDir, 'data', this.oneBot.uin + '.json'))
-        this.db.sync({eventBuffer: [],KVMap:{}, files: {}})
         this.logger = this.oneBot.app.getLogger(this.oneBot.uin, this.version)
+        this.db = new Database(join(App.configDir, 'data', this.oneBot.uin + '.db'), this.logger)
     }
 
     start(path?: string) {
@@ -220,7 +220,7 @@ export class V11 extends EventEmitter implements OneBot.Base {
                 data.message = toSegment(data.message) 
             } else {
                 if (data.source) {
-                    this.db.set(`KVMap.${data.source.seq}`,data.message[0].id)
+                    // this.db.set(`KVMap.${data.source.seq}`,data.message[0].id) // TODO reply 里的是否需要记录？ 如果之前没有收到应该也没有存储的必要
                     data.message.shift()
                     data.message = toCqcode(data).replace(/^(\[CQ:reply,id=)(.+?)\]/, `$1${data.source.seq}]`)
                 }else{
@@ -228,13 +228,18 @@ export class V11 extends EventEmitter implements OneBot.Base {
                 }
             }
         }
+        
         if(data.message_id) {
-            this.db.set(`KVMap.${data.seq}`,data.message_id)
+            // this.db.set(`KVMap.${data.seq}`,data.message_id)
+            this.addMsgIntoDB(data)
             data.message_id = data.seq
+        }
+        if(data.post_type == 'notice' && String(data.notice_type).endsWith('_recall')) {
+            this.db.markMsgAsRecalled(data.base64_id)
         }
         if(data.font){
             const fontNo=Buffer.from(data.font).readUInt32BE()
-            this.db.set(`KVMap.${data.fontNo}`,data.font)
+            // this.db.set(`KVMap.${data.fontNo}`,data.font)
             data.font = fontNo
         }
         data.time = Math.floor(Date.now() / 1000)
@@ -243,6 +248,22 @@ export class V11 extends EventEmitter implements OneBot.Base {
         //     return value + ''
         // })
         this.emit('dispatch', JSON.stringify(data))
+    }
+
+    private addMsgIntoDB(data: any) {
+        let msg = new MsgData()
+        msg.base64_id = data.base64_id
+        msg.seq = data.seq
+        msg.sender = data.sender.user_id
+        msg.nickname = data.sender.nickname
+        if(data.message_type === 'group')
+        {
+            msg.group_id = data.group_id
+            msg.group_name = data["group_name"] // 可能不存在(gocq默认不发)
+        }
+        msg.content = String(data.message)
+        
+        this.db.addMsg(msg)
     }
 
     private async _httpRequestHandler(ctx: Context) {
@@ -406,7 +427,7 @@ export class V11 extends EventEmitter implements OneBot.Base {
     async apply(req: V11.Protocol) {
         let {action, params, echo} = req
         if(typeof params.message_id == 'number' || /^\d+$/.test(params.message_id)){
-            params.message_id = this.db.get(`KVMap.${params.message_id}`)
+            params.message_id = (await this.db.getMsgById(params.message_id)).id
         }
         action = toLine(action)
         let is_async = action.includes("_async")
@@ -475,7 +496,7 @@ export class V11 extends EventEmitter implements OneBot.Base {
             if (result.data?.message)
                 result.data.message = toSegment(result.data.message)
             if (result.data?.message_id && result.data?.seq){
-                this.db.set(`KVMap.${result.data.seq}`,result.data.message_id )
+                // this.db.set(`KVMap.${result.data.seq}`,result.data.message_id ) // TODO send 应该不需要记录，因为发送成功后会收到一条服务器同步的 recv from 消息
                 result.data.message_id = result.data.seq
             }
             if (echo) {
