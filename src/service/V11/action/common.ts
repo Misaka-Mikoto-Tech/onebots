@@ -34,6 +34,7 @@ export class CommonAction {
         return msg
     }
 
+
     /**
      * 获取合并消息
      * @param id {string} 合并id
