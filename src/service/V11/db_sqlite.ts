@@ -1,5 +1,5 @@
 import {readFileSync, writeFileSync, existsSync} from "fs";
-import { MsgData } from "./db_entities"
+import { MsgEntry } from "./db_entities"
 import { DataSource, Repository } from "typeorm";
 import { Logger } from "log4js";
 
@@ -10,18 +10,18 @@ export class Database {
      * 消息在数据库中的保留时间
      */
     public msgPreserveDays: number = 365 * 2
-    msgRepo: Repository<MsgData>
+    msgRepo: Repository<MsgEntry>
 
     constructor(dbPath: string, logger: Logger){
         this.logger = logger
         this.dataSource = new DataSource({
             type: "better-sqlite3",
             database: dbPath,
-            entities: [MsgData]
+            entities: [MsgEntry]
         })
 
         this.dataSource.initialize().then(()=>{
-            this.msgRepo = this.dataSource.getRepository(MsgData)
+            this.msgRepo = this.dataSource.getRepository(MsgEntry)
             logger.debug(`sqlite [${dbPath}] open success`)
         })
         .catch((err)=> {
@@ -33,9 +33,10 @@ export class Database {
      * 增加一条消息到数据库
      * @param msgData 
      */
-    public async addMsg(msgData: MsgData) {
-        let ret = await this.msgRepo.insert(msgData)
-        this.logger.info(`addMsg ret:${ret}`)
+    public async addMsg(msgData: MsgEntry): Promise<number> {
+        msgData = await this.msgRepo.save(msgData) // TODO save 是否会更新 id?
+        this.logger.info(`addMsg with id:${msgData.id}`)
+        return msgData.id
     }
 
     /**
@@ -43,7 +44,7 @@ export class Database {
      * @param base64_id 
      * @returns 
      */
-    public async getMsgByBase64Id(base64_id: string): Promise<MsgData | null> {
+    public async getMsgByBase64Id(base64_id: string): Promise<MsgEntry | null> {
         let ret = await this.msgRepo.findOneBy({base64_id: base64_id})
         return ret
     }
@@ -53,7 +54,7 @@ export class Database {
      * @param id 
      * @returns 
      */
-    public async getMsgById(id: number): Promise<MsgData | null> {
+    public async getMsgById(id: number): Promise<MsgEntry | null> {
         let ret = await this.msgRepo.findOneBy({id: id})
         return ret
     }
@@ -80,7 +81,7 @@ export class Database {
         await this.msgRepo
         .createQueryBuilder()
         .delete()
-        .from(MsgData)
+        .from(MsgEntry)
         .where("create_time < :dt", {dt: dt})
         .execute()
     }

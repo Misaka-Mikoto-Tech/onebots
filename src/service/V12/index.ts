@@ -356,7 +356,7 @@ export class V12 extends EventEmitter implements OneBot.Base {
 
     }
 
-    dispatch(data: Record<string, any>) {
+    async dispatch(data: Record<string, any>) {
         const payload: V12.Payload<any> = {
             id: uuid(),
             impl: 'onebots',

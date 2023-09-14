@@ -17,7 +17,7 @@ import {rmSync} from "fs";
 import {Database} from "./db_sqlite";
 import {join} from "path";
 import {App} from "@/server/app";
-import { MsgData } from "./db_entities";
+import { MsgEntry } from "./db_entities";
 import { stringify } from "querystring";
 
 export class V11 extends EventEmitter implements OneBot.Base {
@@ -210,7 +210,7 @@ export class V11 extends EventEmitter implements OneBot.Base {
         this.logger.info('')
     }
 
-    dispatch(data: any) {
+    async dispatch(data: any) {
         if (!data.post_type) data.post_type = 'system'
         if (data.post_type === 'system') {
 
@@ -231,8 +231,7 @@ export class V11 extends EventEmitter implements OneBot.Base {
         
         if(data.message_id) {
             // this.db.set(`KVMap.${data.seq}`,data.message_id)
-            this.addMsgIntoDB(data)
-            data.message_id = data.seq
+            data.message_id = await this.addMsgIntoDB(data)
         }
         if(data.post_type == 'notice' && String(data.notice_type).endsWith('_recall')) {
             this.db.markMsgAsRecalled(data.base64_id)
@@ -250,8 +249,8 @@ export class V11 extends EventEmitter implements OneBot.Base {
         this.emit('dispatch', JSON.stringify(data))
     }
 
-    private addMsgIntoDB(data: any) {
-        let msg = new MsgData()
+    private async addMsgIntoDB(data: any): Promise<number> {
+        let msg = new MsgEntry()
         msg.base64_id = data.base64_id
         msg.seq = data.seq
         msg.sender = data.sender.user_id
@@ -261,9 +260,9 @@ export class V11 extends EventEmitter implements OneBot.Base {
             msg.group_id = data.group_id
             msg.group_name = data["group_name"] // 可能不存在(gocq默认不发)
         }
-        msg.content = String(data.message)
+        msg.content = toCqcode(data.message)
         
-        this.db.addMsg(msg)
+        return await this.db.addMsg(msg)
     }
 
     private async _httpRequestHandler(ctx: Context) {
@@ -427,7 +426,7 @@ export class V11 extends EventEmitter implements OneBot.Base {
     async apply(req: V11.Protocol) {
         let {action, params, echo} = req
         if(typeof params.message_id == 'number' || /^\d+$/.test(params.message_id)){
-            params.message_id = (await this.db.getMsgById(params.message_id)).id
+            params.message_id = (await this.db.getMsgById(params.message_id)).id // 调用api时把本地的数字id转为base64发给icqq
         }
         action = toLine(action)
         let is_async = action.includes("_async")
@@ -503,9 +502,8 @@ export class V11 extends EventEmitter implements OneBot.Base {
                 result.data = [...result.data.values()]
             if (result.data?.message)
                 result.data.message = toSegment(result.data.message)
-            if (result.data?.message_id && result.data?.seq){
-                // this.db.set(`KVMap.${result.data.seq}`,result.data.message_id ) // TODO send 应该不需要记录，因为发送成功后会收到一条服务器同步的 recv from 消息
-                result.data.message_id = result.data.seq
+            if (result.data?.message_id) { // TODO 判断是否是 base64
+                result.data.message_id = (await this.db.getMsgByBase64Id(result.data?.message_id)).base64_id
             }
             if (echo) {
                 result.echo = echo
