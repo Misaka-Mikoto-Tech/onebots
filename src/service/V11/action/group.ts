@@ -159,16 +159,16 @@ export class GroupAction {
      * 获取指定群信息
      * @param group_id
      */
-    getGroupInfo(this: V11, group_id: number) {
-        return this.client.getGroupInfo(group_id)
+    getGroupInfo(this: V11, group_id: number, no_cache = false) {
+        return this.client.getGroupInfo(group_id, no_cache)
     }
 
     /**
      * 获取群成员列表
      * @param group_id
      */
-    async getGroupMemberList(this: V11, group_id: number) {
-        return this.client.getGroupMemberList(group_id)
+    async getGroupMemberList(this: V11, group_id: number, no_cache = false) {
+        return this.client.getGroupMemberList(group_id, no_cache)
     }
 
     /**
@@ -176,7 +176,7 @@ export class GroupAction {
      * @param group_id
      * @param user_id
      */
-    getGroupMemberInfo(this: V11, group_id: number, user_id: number) {
-        return this.client.getGroupMemberInfo(group_id, user_id)
+    getGroupMemberInfo(this: V11, group_id: number, user_id: number, no_cache = false) {
+        return this.client.getGroupMemberInfo(group_id, user_id, no_cache)
     }
 }
