@@ -1,6 +1,7 @@
 import { V11 } from "@/service/V11"
 import { processMessage } from "@/service/V11/utils"
 import { shareMusic } from "@/service/shareMusicCustom"
+import { createQuotableFromMsgId } from "@/utils"
 import { MessageElem, MusicElem } from "icqq/lib/message"
 
 export class GroupAction {
@@ -12,11 +13,12 @@ export class GroupAction {
      */
     async sendGroupMsg(this: V11, group_id: number, message: MessageElem[], message_id?: string) {
         const msg = message_id ? await this.client.getMsg(message_id) : undefined
+        const tmpQuote = (message_id && !msg) ? createQuotableFromMsgId(message_id) : undefined
         const { element, music, share } = await processMessage.apply(this.client, [message])
         if (music) return await shareMusic.call(this.client.pickGroup(group_id), music as MusicElem)
         if (share) return await this.client.pickGroup(group_id).shareUrl(music.data)
         if (!element.length) throw new Error("Empty message")
-        return await this.client.sendGroupMsg(group_id, element, msg)
+        return await this.client.sendGroupMsg(group_id, element, msg || tmpQuote)
     }
 
     /**

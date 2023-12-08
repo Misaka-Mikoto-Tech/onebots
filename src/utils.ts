@@ -1,4 +1,5 @@
 import * as crypto from "crypto";
+import { Quotable, parseGroupMessageId, parseDmMessageId } from "icqq";
 
 const packageJson = require("../package.json");
 export const version = packageJson.version;
@@ -164,4 +165,19 @@ export function getProperties(obj) {
         return [];
     }
     return Object.getOwnPropertyNames(obj).concat(getProperties(obj.__proto__));
+}
+
+/**
+ * 从 message_id 创建一个 Quotable(适用于 getMsg 失败的情况)
+ * @param message_id 
+ * @returns 
+ */
+export function createQuotableFromMsgId(message_id: string): Quotable {
+    const message = '消息已被撤回'
+    
+    if (message_id.length > 24) {
+        return {...parseGroupMessageId(message_id), message};
+    } else {
+        return {...parseDmMessageId(message_id), message};
+    }
 }
